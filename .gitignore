@@ -1,0 +1,10 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+frontend/.next/
+frontend/node_modules/
+.DS_Store
+frontend/out/
+frontend/.vercel/
+.ipynb_checkpoints/

@@ -65,23 +65,42 @@ async def generate_post(request: GenerateRequest):
                             msg_list = []
                             for m in val:
                                 msg_type = "human"
-                                if hasattr(m, "type"):
-                                    msg_type = m.type
+                                content = ""
                                 
-                                # Convert tool calls list to dicts
-                                tool_calls = []
-                                if getattr(m, "tool_calls", None):
-                                    for tc in m.tool_calls:
-                                        tool_calls.append({
-                                            "name": tc.get("name"),
-                                            "args": tc.get("args"),
-                                            "id": tc.get("id")
-                                        })
+                                # Handle both message objects and tuples
+                                if isinstance(m, tuple):
+                                    # If it's a tuple, extract content from the second element
+                                    if len(m) > 1:
+                                        content = str(m[1]) if m[1] else ""
+                                else:
+                                    # Handle message objects
+                                    if hasattr(m, "type"):
+                                        msg_type = m.type
+                                    if hasattr(m, "content"):
+                                        content = m.content
+                                    
+                                    # Convert tool calls list to dicts
+                                    tool_calls = []
+                                    if getattr(m, "tool_calls", None):
+                                        for tc in m.tool_calls:
+                                            tool_calls.append({
+                                                "name": tc.get("name"),
+                                                "args": tc.get("args"),
+                                                "id": tc.get("id")
+                                            })
+                                    
+                                    msg_list.append({
+                                        "role": msg_type,
+                                        "content": content,
+                                        "tool_calls": tool_calls if tool_calls else None
+                                    })
+                                    continue
                                 
+                                # For tuples, create a simple message dict
                                 msg_list.append({
                                     "role": msg_type,
-                                    "content": m.content,
-                                    "tool_calls": tool_calls if tool_calls else None
+                                    "content": content,
+                                    "tool_calls": None
                                 })
                             serializable_updates[key] = msg_list
                         else:

@@ -20,7 +20,7 @@ def search_web(query: str) -> str:
 tools = [search_web]
 
 writer_llm = ChatGoogleGenerativeAI(
-    model_name="gemini-2.5-flash",
+    model="gemini-3.5-flash",
     temperature=0.7
 )
 
@@ -82,7 +82,16 @@ tool_node = ToolNode(tools)
 def extract_draft_node(state:State) -> dict:
     """After the writer finishes tool calls, pulls the final text out as the draft."""
     last_message = state['messages'][-1]
-    draft = last_message.content 
+    content = last_message.content
+    
+    # Extract text content only
+    if isinstance(content, dict) and 'text' in content:
+        draft = content['text']
+    elif hasattr(content, 'text'):
+        draft = content.text
+    else:
+        draft = str(content)
+    
     print(f"\n\n generated post \n {draft} \n ")
     return {"draft" : draft}
     
@@ -143,13 +152,20 @@ def should_use_tool(state:State):
     return "extract_draft"
 
 def should_stop_looping(state:State):
+    # Only proceed to next draft if we have a review result
     if state['is_approved']:
-        print("post ha s been approved \n")
+        print("post has been approved \n")
         return END
     if state['attempt'] >= 3:
         print("reached max attempts")
         return END 
-    return "writer"
+    # Only go back to writer if we have review feedback
+    if state.get('review_feedback'):
+        print("proceeding to next draft with feedback")
+        return "writer"
+    # If no feedback yet, something went wrong - end the workflow
+    print("no review feedback available, ending workflow")
+    return END
 
 #build the graph 
 graph = StateGraph(State)

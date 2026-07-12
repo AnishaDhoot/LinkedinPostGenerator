@@ -359,7 +359,7 @@ export default function Home() {
                         <div className="step-content">
                           <div className="step-title">Writer: Web Search</div>
                           <div className="step-description">
-                            Searching the web for current context: <strong style={{color: '#ffffff'}}>"{it.searchQuery}"</strong>
+                            Searching the web for current context: <strong style={{color: '#ffffff'}}>&quot;{it.searchQuery}&quot;</strong>
                             {it.searchResult && (
                               <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '6px', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', padding: '6px', borderRadius: '4px', maxHeight: '60px', overflowY: 'auto' }}>
                                 Found results: {it.searchResult}

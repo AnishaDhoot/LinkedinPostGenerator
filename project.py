@@ -7,6 +7,7 @@ from langchain_groq import ChatGroq
 from langchain_tavily import TavilySearch
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.messages import SystemMessage, ToolMessage, HumanMessage, AIMessage
 
 load_dotenv()
 
@@ -20,7 +21,7 @@ def search_web(query: str) -> str:
 tools = [search_web]
 
 writer_llm = ChatGoogleGenerativeAI(
-    model="gemini-3.5-flash",
+    model="gemini-3.1-flash-lite",
     temperature=0.7
 )
 
@@ -55,27 +56,44 @@ WRITER_SYSTEM_PROMPT = (
     "engagement. Do not use hashtags."
 )
 
-def writer_node(state: State)-> dict:
+def writer_node(state: State) -> dict:
     """Writes/ Rewrites the LinkedIn post using tavily to search first"""
-    attempt = state.get("attempt", 0) + 1
-    topic= state['topic']
+    messages = state.get("messages", [])
+    attempt = state.get("attempt", 0)
+    topic = state['topic']
     previous_feedback = state.get('review_feedback', None)
 
-    if attempt==1:
-        user_message = f"Write a LinkedIn post on this topic: {topic}"
+    # Check if we are resuming from a tool execution
+    if messages and isinstance(messages[-1], ToolMessage):
+        # We are continuing the current attempt after a tool call.
+        # Do not increment attempt. Do not add a new user message.
+        # Just run the LLM with the existing messages.
+        sys_message = SystemMessage(content=WRITER_SYSTEM_PROMPT)
+        response = writer_llm_tools.invoke([sys_message] + messages)
+        return {
+            "messages": [response]
+        }
     else:
-        user_message = (
-            f"your previous draft on '{topic}' was rejected"
-            f"Here is the reviewer's feedback \n\n {previous_feedback}\n\n"
-            f"Write a new, improved draft that fixes every issue mentiond"
-            f"do not repeat the same mistake"
-        )
-    messages = [("system", WRITER_SYSTEM_PROMPT), ("user", user_message)]
-    response=writer_llm_tools.invoke(messages)
-    return{
-            "messages" : [("human",user_message),response],
-            "attempt" : attempt
-    }
+        # We are starting a new attempt (either first attempt or rewrite)
+        attempt += 1
+        if attempt == 1:
+            user_message = f"Write a LinkedIn post on this topic: {topic}"
+        else:
+            user_message = (
+                f"Your previous draft on '{topic}' was rejected.\n"
+                f"Here is the reviewer's feedback:\n\n{previous_feedback}\n\n"
+                f"Write a new, improved draft that fixes every issue mentioned. "
+                f"Do not repeat the same mistakes."
+            )
+        
+        sys_message = SystemMessage(content=WRITER_SYSTEM_PROMPT)
+        user_msg_obj = HumanMessage(content=user_message)
+        
+        response = writer_llm_tools.invoke([sys_message] + messages + [user_msg_obj])
+        return {
+            "messages": [user_msg_obj, response],
+            "attempt": attempt
+        }
 
 tool_node = ToolNode(tools)
 
@@ -85,7 +103,17 @@ def extract_draft_node(state:State) -> dict:
     content = last_message.content
     
     # Extract text content only
-    if isinstance(content, dict) and 'text' in content:
+    if isinstance(content, str):
+        draft = content
+    elif isinstance(content, list):
+        text_parts = []
+        for part in content:
+            if isinstance(part, dict) and 'text' in part:
+                text_parts.append(part['text'])
+            elif isinstance(part, str):
+                text_parts.append(part)
+        draft = "\n".join(text_parts)
+    elif isinstance(content, dict) and 'text' in content:
         draft = content['text']
     elif hasattr(content, 'text'):
         draft = content.text
@@ -126,7 +154,14 @@ def reviewer_node(state:State) -> dict:
     )
     review_text = response.content.strip()
     
-    is_approved = "APPROVED" in review_text.upper().split("FEEDBACK")[0]
+    # Parse verdict robustly by extracting the line starting with VERDICT
+    verdict_line = ""
+    for line in review_text.splitlines():
+        if "VERDICT:" in line.upper():
+            verdict_line = line
+            break
+            
+    is_approved = "APPROVED" in verdict_line.upper()
 
     if "FEEDBACK:" in review_text:
         feedback = review_text.split("FEEDBACK:", 1)[1].strip()

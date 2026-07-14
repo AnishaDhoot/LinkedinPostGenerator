@@ -10,6 +10,7 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [apiOnline, setApiOnline] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [previewMode, setPreviewMode] = useState("light");
 
   const chatEndRef = useRef(null);
 
@@ -245,11 +246,14 @@ export default function Home() {
         <div className="sidebar-section">
           <h3 className="sidebar-title">Server Status</h3>
           <div className="sidebar-config-card">
-            <div className="sidebar-config-row">
+            <div className="sidebar-config-row" style={{ display: 'flex', alignItems: 'center' }}>
               <span>FastAPI API:</span>
-              <span style={{ fontWeight: 600, color: apiOnline ? '#10b981' : '#ef4444' }}>
-                {apiOnline ? 'Online' : 'Offline'}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
+                <span className={`status-dot ${apiOnline ? 'online' : 'offline'}`}></span>
+                <span style={{ fontWeight: 600, color: apiOnline ? '#10b981' : '#ef4444' }}>
+                  {apiOnline ? 'Online' : 'Offline'}
+                </span>
+              </div>
             </div>
             <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '4px' }}>Host: 127.0.0.1:8000</div>
           </div>
@@ -438,7 +442,75 @@ export default function Home() {
                     </button>
                   </div>
                   <div className="final-post-body">
-                    <div className="final-post-content">{approvedPost}</div>
+                    <div className="linkedin-card-container">
+                      <div className="linkedin-toggle-bar">
+                        <span>LinkedIn Mockup Mode:</span>
+                        <button 
+                          className={`linkedin-toggle-btn ${previewMode === 'light' ? 'active' : ''}`}
+                          onClick={() => setPreviewMode('light')}
+                        >
+                          Light Mode
+                        </button>
+                        <button 
+                          className={`linkedin-toggle-btn ${previewMode === 'dark' ? 'active' : ''}`}
+                          onClick={() => setPreviewMode('dark')}
+                        >
+                          Dark Mode
+                        </button>
+                      </div>
+
+                      {/* Mockup LinkedIn Card */}
+                      <div className={`linkedin-card ${previewMode === 'dark' ? 'dark-mode-preview' : ''}`}>
+                        <div className="linkedin-header">
+                          <div className="linkedin-avatar">AI</div>
+                          <div className="linkedin-meta">
+                            <span className="linkedin-name">LinkedIn Post AI</span>
+                            <span className="linkedin-headline">Enterprise Agentic Content specialist • 2nd</span>
+                            <span className="linkedin-time">
+                              Just now • 🌐
+                            </span>
+                          </div>
+                        </div>
+                        <div className="linkedin-body">
+                          {approvedPost}
+                        </div>
+                        <div className="linkedin-stats">
+                          <div className="linkedin-reactions">
+                            👍❤️💡 124 reactions
+                          </div>
+                          <div>
+                            12 comments • 4 reposts
+                          </div>
+                        </div>
+                        <div className="linkedin-actions">
+                          <button className="linkedin-action-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '4px' }}>
+                              <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" />
+                            </svg>
+                            Like
+                          </button>
+                          <button className="linkedin-action-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '4px' }}>
+                              <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
+                            </svg>
+                            Comment
+                          </button>
+                          <button className="linkedin-action-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '4px' }}>
+                              <path d="M17 2.1l4 4-4 4M3 22v-6a6 6 0 016-6h12" />
+                            </svg>
+                            Repost
+                          </button>
+                          <button className="linkedin-action-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '4px' }}>
+                              <line x1="22" y1="2" x2="11" y2="13" />
+                              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                            </svg>
+                            Send
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
